@@ -41,8 +41,6 @@ class AppSettings {
     }
   }
 
-  String get countryCodeUpperCase => countryCode.toUpperCase();
-
   bool get isLoggedIn => token.isNotEmpty;
 
   Future<void> setToken(String newToken) async {
@@ -80,9 +78,6 @@ class AppSettings {
     await storage.delete(Keys.refreshToken);
     await storage.delete(Keys.agentJson);
   }
-
-  @Deprecated('Use clearSession')
-  Future<void> clearToken() => clearSession();
 
   bool get isArabic => currentLang == "ar";
 

@@ -17,8 +17,6 @@ class AppColors {
   static final Color success = HexColor('#3B9A61');
   static final Color noteText = HexColor('#D97706');
   static final Color noteBackground = HexColor('#FFFBEB');
-  static final Color defaultBaseShimmer = HexColor('#E0E0E0');
-  static final Color defaultHighlightShimmer = HexColor('#F5F5F5');
   //! Light Mode
   static final Color primary = HexColor("#054239");
   static final Color primarySoft = HexColor("#1D7669");

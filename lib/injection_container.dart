@@ -13,15 +13,12 @@ import 'core/network/dio_client.dart';
 import 'core/network/dio_factory.dart';
 import 'core/observers/bloc_observer.dart';
 import 'app/navigation/navigation_service.dart';
-import 'core/services/file_upload_service.dart';
 import 'core/services/sse_service.dart';
 import 'core/storage/shared_prefs_service.dart';
-import 'core/services/dynamic_link_service.dart';
 import 'core/storage/local_storage_service.dart';
 import 'core/services/file_download_service.dart';
 import 'core/services/attachment_cache_service.dart';
 import 'features/tickets/presentation/helpers/reply_attachment_opener.dart';
-import 'core/services/notifications_service.dart';
 import 'core/storage/secure_storage_service.dart';
 import 'core/observers/app_lifecycle_observer.dart';
 import 'core/network/interceptors/app_interceptor.dart';
@@ -30,7 +27,6 @@ import 'core/network/interceptors/retry_interceptor.dart';
 import 'core/network/interceptors/token_refresh_interceptor.dart';
 import 'core/network/interceptors/app_updates_interceptor.dart';
 
-import 'app/shared/injection_container.dart' as di_shared;
 import 'features/startup/injection_container.dart' as di_startup;
 import 'features/auth/injection_container.dart' as di_auth;
 import 'features/tickets/injection_container.dart' as di_tickets;
@@ -95,7 +91,6 @@ Future<void> init() async {
   sl.registerLazySingleton<ApiClient>(() => DioClient(sl<Dio>()));
 
   sl.registerLazySingleton(() => NavigationService());
-  sl.registerLazySingleton(() => FileUploadService(sl<Dio>()));
   sl.registerLazySingleton(() => FileDownloadService(sl<Dio>()));
   sl.registerLazySingleton(() => AttachmentCacheService());
   sl.registerLazySingleton(
@@ -104,8 +99,6 @@ Future<void> init() async {
       downloadService: sl(),
     ),
   );
-  sl.registerLazySingleton(() => DynamicLinkService(navigationService: sl()));
-  sl.registerLazySingleton(() => NotificationsService(navigationService: sl()));
   sl.registerLazySingleton(() => SseService());
 
   final sharedPrefs = await SharedPreferences.getInstance();
@@ -121,7 +114,6 @@ Future<void> init() async {
   final packageInfo = await PackageInfo.fromPlatform();
   sl.registerLazySingleton(() => packageInfo);
 
-  await di_shared.init();
   await di_startup.init();
   await di_auth.init();
   await di_tickets.init();
