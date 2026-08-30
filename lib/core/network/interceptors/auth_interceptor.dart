@@ -9,12 +9,16 @@ import '../../../app/navigation/app_router.dart';
 import '../../../app/navigation/navigation_service.dart';
 import '../../../app/utils/extensions/context_extensions.dart';
 
+import '../api_error_utils.dart';
+
 class AuthInterceptor extends Interceptor {
   final NavigationService navigationService;
 
   bool _isHandling401 = false;
 
   AuthInterceptor({required this.navigationService});
+
+  Future<void> handleSessionExpired() => _handleSessionExpired();
 
   bool _isAuthPath(String path) =>
       path.contains('/auth/login') || path.contains('/auth/refresh');
@@ -26,9 +30,16 @@ class AuthInterceptor extends Interceptor {
   ) async {
     if (err.response?.statusCode == 401 &&
         !_isAuthPath(err.requestOptions.path)) {
-      await _handleSessionExpired();
+      final errorCode = await parseApiErrorCodeAsync(
+        err.response,
+        debugTag: 'AuthInterceptor',
+      );
+      // TOKEN_EXPIRED is handled by TokenRefreshInterceptor (refresh + retry).
+      if (errorCode != 'TOKEN_EXPIRED') {
+        await _handleSessionExpired();
+      }
     }
-    super.onError(err, handler);
+    handler.next(err);
   }
 
   Future<void> _handleSessionExpired() async {

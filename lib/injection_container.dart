@@ -72,16 +72,20 @@ Future<void> init() async {
     () => DioFactory(
       interceptors: [
         sl<AppInterceptor>(),
-        sl<TokenRefreshInterceptor>(),
         sl<AuthInterceptor>(),
         sl<RetryInterceptor>(),
         sl<AppUpdatesInterceptor>(),
+        // Registered last → runs first on onError (Dio reverses error chain).
+        sl<TokenRefreshInterceptor>(),
       ],
     ),
   );
   sl.registerLazySingleton<Dio>(() {
     final dio = sl<DioFactory>().createDio();
-    sl<TokenRefreshInterceptor>().attach(dio);
+    sl<TokenRefreshInterceptor>().attach(
+      dio,
+      authInterceptor: sl<AuthInterceptor>(),
+    );
     sl<RetryInterceptor>().attach(dio);
     sl<SseService>().attach(dio);
     return dio;

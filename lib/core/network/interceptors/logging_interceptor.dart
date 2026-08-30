@@ -2,6 +2,8 @@ import 'dart:convert';
 import 'dart:developer';
 import 'package:dio/dio.dart';
 
+import '../api_error_utils.dart';
+
 class LoggingInterceptor extends Interceptor {
   DateTime? _startTime;
 
@@ -27,7 +29,10 @@ ${_formatData(options.data)}
   }
 
   @override
-  void onResponse(Response response, ResponseInterceptorHandler handler) {
+  Future<void> onResponse(
+    Response response,
+    ResponseInterceptorHandler handler,
+  ) async {
     final endTime = DateTime.now();
     final duration = endTime.difference(_startTime!);
 
@@ -38,20 +43,36 @@ ${_formatData(options.data)}
 ⏱️  TIME: ${duration.inMilliseconds}ms
 
 📌 DATA:
-${_formatData(response.data)}
+${await _formatDataAsync(response.data, response.requestOptions)}
 
 =======================================================
 ''');
 
-    super.onResponse(response, handler);
+    handler.next(response);
   }
 
   @override
-  void onError(DioException err, ErrorInterceptorHandler handler) {
+  Future<void> onError(
+    DioException err,
+    ErrorInterceptorHandler handler,
+  ) async {
     final endTime = DateTime.now();
     final duration = _startTime != null
         ? endTime.difference(_startTime!)
         : null;
+
+    String formatted;
+    final data = err.response?.data;
+
+    if (data is ResponseBody) {
+      final content = await readResponseBodyForLog(data);
+      formatted = content.logText;
+      if (content.map != null) {
+        err.response!.data = content.map;
+      }
+    } else {
+      formatted = await _formatDataAsync(data, err.requestOptions);
+    }
 
     log('''
 ===================== ❌ ERROR =====================
@@ -61,12 +82,12 @@ ${_formatData(response.data)}
 ⏱️ TIME: ${duration?.inMilliseconds}ms
 
 📌 ERROR DATA:
-${_formatData(err.response?.data)}
+$formatted
 
 =======================================================
 ''');
 
-    super.onError(err, handler);
+    handler.next(err);
   }
 
   // ---------- Helpers ---------- //
@@ -76,9 +97,33 @@ ${_formatData(err.response?.data)}
     return encoder.convert(map);
   }
 
+  Future<String> _formatDataAsync(
+    dynamic data,
+    RequestOptions requestOptions,
+  ) async {
+    if (data == null) return 'null';
+
+    if (data is ResponseBody) {
+      if (_isLiveStream(requestOptions)) {
+        final type = requestOptions.responseType;
+        return '<stream ($type) — body not logged to preserve stream>';
+      }
+
+      final content = await readResponseBodyForLog(data);
+      return content.logText;
+    }
+
+    return _formatData(data);
+  }
+
+  bool _isLiveStream(RequestOptions options) {
+    return options.responseType == ResponseType.stream &&
+        options.path.contains('/events');
+  }
+
   String _formatData(dynamic data) {
     try {
-      if (data == null) return "null";
+      if (data == null) return 'null';
       if (data is String) {
         return data;
       }

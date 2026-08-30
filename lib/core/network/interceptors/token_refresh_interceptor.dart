@@ -1,26 +1,38 @@
 import 'dart:async';
+import 'dart:developer' as developer;
 
 import 'package:dio/dio.dart';
 
 import '../../../app/config/app_config.dart';
 import '../../../app/config/app_settings.dart';
 import '../api_error_utils.dart';
+import 'auth_interceptor.dart';
 
 class TokenRefreshInterceptor extends Interceptor {
+  static const _retriedKey = 'retried_after_refresh';
+
   Dio? _dio;
+  AuthInterceptor? _authInterceptor;
+
   final Dio _refreshDio = Dio(
     BaseOptions(
       baseUrl: AppConfig.baseUrl,
       connectTimeout: const Duration(seconds: AppConfig.timeoutSeconds),
       receiveTimeout: const Duration(seconds: AppConfig.timeoutSeconds),
-      headers: {'Content-Type': 'application/json', 'Accept': 'application/json'},
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
       validateStatus: (status) => status != null && status < 500,
     ),
   );
 
   Completer<String?>? _refreshCompleter;
 
-  void attach(Dio dio) => _dio = dio;
+  void attach(Dio dio, {AuthInterceptor? authInterceptor}) {
+    _dio = dio;
+    _authInterceptor = authInterceptor;
+  }
 
   bool _isAuthPath(String path) =>
       path.contains('/auth/login') || path.contains('/auth/refresh');
@@ -37,25 +49,44 @@ class TokenRefreshInterceptor extends Interceptor {
       return handler.next(err);
     }
 
-    final errorCode = parseApiErrorCode(err.response?.data);
+    final errorCode = await parseApiErrorCodeAsync(
+      err.response,
+      debugTag: 'TokenRefreshInterceptor',
+    );
     if (errorCode != 'TOKEN_EXPIRED') {
       return handler.next(err);
     }
 
+    if (err.requestOptions.extra[_retriedKey] == true) {
+      await _authInterceptor?.handleSessionExpired();
+      return handler.next(err);
+    }
+
     final dio = _dio;
-    if (dio == null) return handler.next(err);
+    if (dio == null) {
+      await _authInterceptor?.handleSessionExpired();
+      return handler.next(err);
+    }
 
     try {
       final newToken = await _refreshAccessToken();
       if (newToken == null || newToken.isEmpty) {
+        await _authInterceptor?.handleSessionExpired();
         return handler.next(err);
       }
 
+      developer.log(
+        '[TokenRefreshInterceptor] /auth/refresh succeeded — retrying ${err.requestOptions.path}',
+        name: 'TokenRefreshInterceptor',
+      );
+
       final options = err.requestOptions;
+      options.extra[_retriedKey] = true;
       options.headers['Authorization'] = 'Bearer $newToken';
       final response = await dio.fetch(options);
       return handler.resolve(response);
     } catch (_) {
+      await _authInterceptor?.handleSessionExpired();
       return handler.next(err);
     }
   }
