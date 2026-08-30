@@ -22,6 +22,7 @@ Future<void> init() async {
       changeLangUsecase: sl(),
       changeThemeUsecase: sl(),
       getCountryCodeUsecase: sl(),
+      isLoggedInUsecase: sl(),
     ),
   );
 

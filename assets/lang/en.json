@@ -20,5 +20,22 @@
     "none": "Undefined",
     "done": "Done",
     "yes": "Yes",
-    "no": "No"
+    "no": "No",
+    "login": "Log in",
+    "username": "Username",
+    "password": "Password",
+    "logout": "Log out",
+    "welcome_agent": "Welcome",
+    "open_inbox": "Open inbox",
+    "inbox": "Inbox",
+    "no_tickets": "No tickets found",
+    "all": "All",
+    "open": "Open",
+    "pending": "Pending",
+    "solved": "Solved",
+    "my_tickets": "My tickets",
+    "claim": "Claim ticket",
+    "write_reply": "Write your reply...",
+    "send": "Send",
+    "version_conflict": "This ticket changed while you were editing it."
 }

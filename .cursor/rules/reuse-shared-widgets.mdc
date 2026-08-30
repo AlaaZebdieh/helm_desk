@@ -1,0 +1,34 @@
+---
+description: Prefer existing shared app widgets (AppTextField, AppButton, etc.) and avoid duplicating UI
+globs: **/*.dart
+alwaysApply: true
+---
+
+# Reuse Shared Widgets — No Duplicate UI
+
+Before building a custom TextField, Button, Checkbox, Dropdown, Dialog, Image, Error view, or similar:
+
+1. Check `lib/app/widgets/` and existing feature widgets.
+2. Prefer the shared widget if it covers the need (compose via params, not a copy).
+3. Only create a new widget when no existing one fits — and put it in the right layer (`app/widgets` if reusable app-wide).
+
+## Prefer these
+
+| Need | Use |
+|------|-----|
+| Text input | `AppTextField` |
+| Primary / action button | `AppButton` |
+| Icon button | `AppIconButton` |
+| Checkbox / radio | `AppCheckbox` / `AppRadioWidget` |
+| Dropdown | `AppDropdown` / `DropdownSearchField` |
+| Dialog | `AppDialog` / `DialogHelper` |
+| Network image | `AppNetworkImage` |
+| Pull-to-refresh | `AppRefreshWidget` |
+
+## Do not
+
+- Copy-paste the same layout or form field into multiple screens.
+- Use raw `TextField` / `ElevatedButton` / `Checkbox` when an `App*` widget exists and fits.
+- Invent a parallel “custom” button/input for one screen when `AppButton` / `AppTextField` work.
+
+Extract shared pieces into one widget and reuse it.

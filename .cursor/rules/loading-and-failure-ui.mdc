@@ -1,0 +1,51 @@
+---
+description: Unified loading via LoadingHelper and Failure UI via FailureX (showToast / appErrorWidget)
+globs: **/*.dart
+alwaysApply: true
+---
+
+# Loading & Failure UI
+
+## Loading → `LoadingHelper` only
+
+Use `lib/app/helpers/loading_helper.dart`. Do not use raw `CircularProgressIndicator`, SpinKit, or custom loaders in screens/widgets.
+
+| Situation | Use |
+|-----------|-----|
+| Inline / button loader | `LoadingHelper.circular(context)` |
+| Centered page loader | `LoadingHelper.circularCentered(context)` |
+| Full-screen blocking | `LoadingHelper.overlay(context)` |
+| Soft SpinKit (no overlay) | `LoadingHelper.spinKit(context)` |
+| List pagination footer | `LoadingHelper.pagination(context)` |
+
+```dart
+// ❌ BAD
+CircularProgressIndicator(color: ...)
+
+// ✅ GOOD
+LoadingHelper.circularCentered(context)
+// or
+LoadingHelper.overlay(context)
+```
+
+## Failure UI → `FailureX` only
+
+Use `lib/app/utils/extensions/failure_extensions.dart`. Never switch on `Failure` types in UI, and never show SnackBar / Toast / Dialog / custom error text for a `Failure` manually.
+
+| Situation | Use |
+|-----------|-----|
+| Transient / action error | `failure.showToast(context)` |
+| Full-screen / body error | `failure.appErrorWidget(context, onPress: retry)` |
+
+```dart
+// ❌ BAD
+ScaffoldMessenger.of(context).showSnackBar(...);
+// or custom if (failure is NetworkFailure) ...
+
+// ✅ GOOD
+state.failure.showToast(context);
+// or
+state.failure.appErrorWidget(context, onPress: () => cubit.retry());
+```
+
+Do not construct `AppErrorWidget` or call `ToastHelper` directly for `Failure` handling — go through `FailureX`.

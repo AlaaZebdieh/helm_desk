@@ -1,4 +1,4 @@
 class AppFonts {
-  static const String fontFamilyAr = '';
-  static const String fontFamilyEn = '';
+  static const String fontFamilyAr = 'QomraArabic';
+  static const String fontFamilyEn = 'Poppins';
 }

@@ -1,0 +1,46 @@
+---
+description: How to handle Future<Either<Failure, T>> — Cubits use executeUsecase, elsewhere use EitherFutureX.handle
+globs: **/*cubit*.dart,**/*_usecase*.dart,**/execute_usecase.dart,**/either_future_extensions.dart
+alwaysApply: true
+---
+
+# Either Result Handling
+
+Two utilities exist. Do not invent a third.
+
+## Inside Cubits → `UsecaseExecutor.executeUsecase`
+
+- Mix in `UsecaseExecutor<State>` on every Cubit that runs UseCases.
+- Always use `executeUsecase` when a UseCase result affects Cubit state (loading / success / failure).
+- Do NOT use `usecase().handle(...)` inside Cubits for state updates.
+- Do NOT manually `await usecase()` + `fold` / `isLeft` inside Cubits.
+
+```dart
+await executeUsecase(
+  () => loginUsecase(params),
+  onLoading: () => emit(Loading()),
+  onSuccess: (result) => emit(Success(result)),
+  onFailure: (failure) => emit(FailureState(failure)),
+);
+```
+
+If there was no loading emit before, keep `onLoading: () {}` to preserve behavior.
+
+## Outside Cubits → `EitherFutureX.handle`
+
+Use in services, interceptors helpers, non-Cubit logic when success/failure callbacks fit:
+
+```dart
+await usecase().handle(
+  onSuccess: (result) { ... },
+  onFailure: (failure) { ... },
+);
+```
+
+`handle` does not manage loading — never add loading to it.
+
+## Leave unchanged
+
+- Repository / interceptor `fold` used for mapping or control flow (not Cubit UI state).
+- Code already using the correct utility.
+- Do not change business logic, UseCases, repositories, models, or emitted state meaning.

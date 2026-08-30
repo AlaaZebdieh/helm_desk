@@ -14,6 +14,7 @@ import 'core/network/dio_factory.dart';
 import 'core/observers/bloc_observer.dart';
 import 'app/navigation/navigation_service.dart';
 import 'core/services/file_upload_service.dart';
+import 'core/services/sse_service.dart';
 import 'core/storage/shared_prefs_service.dart';
 import 'core/services/dynamic_link_service.dart';
 import 'core/storage/local_storage_service.dart';
@@ -23,17 +24,19 @@ import 'core/storage/secure_storage_service.dart';
 import 'core/observers/app_lifecycle_observer.dart';
 import 'core/network/interceptors/app_interceptor.dart';
 import 'core/network/interceptors/auth_interceptor.dart';
+import 'core/network/interceptors/retry_interceptor.dart';
+import 'core/network/interceptors/token_refresh_interceptor.dart';
 import 'core/network/interceptors/app_updates_interceptor.dart';
 
 import 'app/shared/injection_container.dart' as di_shared;
 import 'features/startup/injection_container.dart' as di_startup;
+import 'features/auth/injection_container.dart' as di_auth;
+import 'features/tickets/injection_container.dart' as di_tickets;
 
 final sl = GetIt.instance;
 
 Future<void> init() async {
   WidgetsFlutterBinding.ensureInitialized();
-
-  // await Firebase.initializeApp();
 
   if (kDebugMode) {
     Bloc.observer = AppBlocObserver();
@@ -41,18 +44,22 @@ Future<void> init() async {
 
   AppLifecycleObserver().startObserving();
 
-  //! Screen Orientation
   await SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
     DeviceOrientation.portraitDown,
   ]);
 
-  //! Network
   sl.registerLazySingleton<AppInterceptor>(
     () => AppInterceptor(packageInfo: sl()),
   );
+  sl.registerLazySingleton<TokenRefreshInterceptor>(
+    () => TokenRefreshInterceptor(),
+  );
   sl.registerLazySingleton<AuthInterceptor>(
     () => AuthInterceptor(navigationService: sl()),
+  );
+  sl.registerLazySingleton<RetryInterceptor>(
+    () => RetryInterceptor(),
   );
   sl.registerLazySingleton<AppUpdatesInterceptor>(
     () => AppUpdatesInterceptor(
@@ -65,22 +72,29 @@ Future<void> init() async {
     () => DioFactory(
       interceptors: [
         sl<AppInterceptor>(),
+        sl<TokenRefreshInterceptor>(),
         sl<AuthInterceptor>(),
+        sl<RetryInterceptor>(),
         sl<AppUpdatesInterceptor>(),
       ],
     ),
   );
-  sl.registerLazySingleton<Dio>(() => sl<DioFactory>().createDio());
+  sl.registerLazySingleton<Dio>(() {
+    final dio = sl<DioFactory>().createDio();
+    sl<TokenRefreshInterceptor>().attach(dio);
+    sl<RetryInterceptor>().attach(dio);
+    sl<SseService>().attach(dio);
+    return dio;
+  });
   sl.registerLazySingleton<ApiClient>(() => DioClient(sl<Dio>()));
 
-  //! Services
   sl.registerLazySingleton(() => NavigationService());
   sl.registerLazySingleton(() => FileUploadService(sl<Dio>()));
   sl.registerLazySingleton(() => FileDownloadService(sl<Dio>()));
   sl.registerLazySingleton(() => DynamicLinkService(navigationService: sl()));
   sl.registerLazySingleton(() => NotificationsService(navigationService: sl()));
+  sl.registerLazySingleton(() => SseService());
 
-  //! Storage
   final sharedPrefs = await SharedPreferences.getInstance();
   sl.registerLazySingleton<LocalStorageService>(
     () => SharedPrefsService(sharedPrefs),
@@ -91,14 +105,13 @@ Future<void> init() async {
     instanceName: "secureStorage",
   );
 
-  //! Other
   final packageInfo = await PackageInfo.fromPlatform();
   sl.registerLazySingleton(() => packageInfo);
 
-  //! Feature DI
   await di_shared.init();
   await di_startup.init();
+  await di_auth.init();
+  await di_tickets.init();
 
-  //! Settings
   await AppSettings().init();
 }

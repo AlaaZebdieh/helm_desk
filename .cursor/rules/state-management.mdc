@@ -1,0 +1,22 @@
+---
+description: Cubit/BLoC only — no setState; prefer StatelessWidget; UI from BlocBuilder/Consumer/Selector
+globs: **/*.dart
+alwaysApply: true
+---
+
+# State Management
+
+- Never use `setState()`.
+- Always use Cubit / BLoC for UI-related state.
+- Prefer `StatelessWidget` for screens and widgets; do not introduce `StatefulWidget` for state that belongs in a Cubit.
+- Drive UI from `BlocBuilder`, `BlocConsumer`, `BlocSelector`, or equivalent — not from local mutable fields.
+
+```dart
+// ❌ BAD
+onPressed: () => setState(() => _loading = true);
+
+// ✅ GOOD
+BlocBuilder<LoginCubit, LoginState>(
+  builder: (context, state) { ... },
+);
+```

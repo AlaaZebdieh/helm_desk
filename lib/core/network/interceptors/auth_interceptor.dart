@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 
 import '../../../app/config/app_settings.dart';
 import '../../../app/helpers/dialog_helper.dart';
+import '../../../app/navigation/app_router.dart';
 import '../../../app/navigation/navigation_service.dart';
 import '../../../app/utils/extensions/context_extensions.dart';
 
@@ -15,42 +16,34 @@ class AuthInterceptor extends Interceptor {
 
   AuthInterceptor({required this.navigationService});
 
-  @override
-  Future<void> onResponse(
-    Response response,
-    ResponseInterceptorHandler handler,
-  ) async {
-    if (response.statusCode == 401) {
-      await _handle401();
-    }
-    super.onResponse(response, handler);
-  }
+  bool _isAuthPath(String path) =>
+      path.contains('/auth/login') || path.contains('/auth/refresh');
 
   @override
   Future<void> onError(
     DioException err,
     ErrorInterceptorHandler handler,
   ) async {
-    if (err.response?.statusCode == 401) {
-      await _handle401();
+    if (err.response?.statusCode == 401 &&
+        !_isAuthPath(err.requestOptions.path)) {
+      await _handleSessionExpired();
     }
     super.onError(err, handler);
   }
 
-  Future<void> _handle401() async {
+  Future<void> _handleSessionExpired() async {
     if (_isHandling401) return;
     _isHandling401 = true;
 
-    await AppSettings().clearToken();
+    await AppSettings().clearSession();
 
-    /// Close any open dialogs just in case
     final ctx = navigationService.navigationKey.currentContext;
     if (ctx == null) {
       _isHandling401 = false;
       return;
     }
-    Navigator.of(ctx, rootNavigator: true).popUntil((route) => route.isFirst);
 
+    Navigator.of(ctx, rootNavigator: true).popUntil((route) => route.isFirst);
     await _showSessionExpiredDialog();
   }
 
@@ -68,11 +61,10 @@ class AuthInterceptor extends Interceptor {
       msg: ctx.translate("your_session_has_expired_log_in_again"),
       onClickYes: () {
         Navigator.pop(ctx);
-        // navigationService.pushNamed(Routes.loginRoute);
+        navigationService.pushReplacementNamed(Routes.loginRoute);
       },
     );
 
-    /// Unfocus keyboard
     FocusManager.instance.primaryFocus?.unfocus();
   }
 }

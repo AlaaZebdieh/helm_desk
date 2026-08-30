@@ -1,0 +1,27 @@
+---
+description: Screens must use MainScreenTheme — never create Scaffold directly in a screen
+globs: **/*screen*.dart,**/*_page*.dart,**/presentation/screens/**/*.dart
+alwaysApply: true
+---
+
+# MainScreenTheme
+
+- Every application **screen** MUST wrap content with `MainScreenTheme` (`lib/app/screens/main_screen_theme.dart`).
+- Do **not** create a `Scaffold` directly inside any screen.
+- `Scaffold` exists only inside `MainScreenTheme`.
+- New screens: build body/content and pass it into `MainScreenTheme` (app bar, FAB, etc. via its existing API).
+
+```dart
+// ❌ BAD
+class FooScreen extends StatelessWidget {
+  Widget build(context) => Scaffold(body: ...);
+}
+
+// ✅ GOOD
+class FooScreen extends StatelessWidget {
+  Widget build(context) => MainScreenTheme(
+    // use existing MainScreenTheme params
+    child: ...,
+  );
+}
+```

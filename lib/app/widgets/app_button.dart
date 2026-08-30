@@ -75,7 +75,7 @@ class AppButton extends StatelessWidget {
             child: Padding(
               padding:
                   padding ??
-                  EdgeInsets.symmetric(horizontal: 24.w, vertical: 15.h),
+                  EdgeInsets.symmetric(horizontal: 24.w),
               child: Center(
                 child: isLoading
                     ? LoadingHelper.circular(context, strokeWidth: 2)

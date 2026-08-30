@@ -6,7 +6,9 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:internet_connection_checker/internet_connection_checker.dart';
 
 import '../../../../app/config/app_settings.dart';
+import '../../../../core/usecases/execute_usecase.dart';
 import '../../../../core/usecases/no_params.dart';
+import '../../../auth/domain/usecases/is_logged_in_usecase.dart';
 import '../../domain/usecases/change_lang_usecase.dart';
 import '../../domain/usecases/change_theme_usecase.dart';
 import '../../domain/usecases/get_saved_lang_usecase.dart';
@@ -18,12 +20,13 @@ import '../../../../app/utils/extensions/either_future_extensions.dart';
 
 part 'startup_state.dart';
 
-class StartupCubit extends Cubit<StartupState> {
+class StartupCubit extends Cubit<StartupState> with UsecaseExecutor<StartupState> {
   final GetSavedLangUsecase getSavedLangUsecase;
   final GetSavedThemeUsecase getSavedThemeUsecase;
   final ChangeLangUsecase changeLangUsecase;
   final ChangeThemeUsecase changeThemeUsecase;
   final GetCountryCodeUsecase getCountryCodeUsecase;
+  final IsLoggedInUsecase isLoggedInUsecase;
 
   StartupCubit({
     required this.getSavedLangUsecase,
@@ -31,6 +34,7 @@ class StartupCubit extends Cubit<StartupState> {
     required this.changeLangUsecase,
     required this.changeThemeUsecase,
     required this.getCountryCodeUsecase,
+    required this.isLoggedInUsecase,
   }) : super(StartupInitial());
 
   StreamSubscription<InternetConnectionStatus>? _subscription;
@@ -100,6 +104,17 @@ class StartupCubit extends Cubit<StartupState> {
       theme.name,
     ).handle(onSuccess: (_) => AppSettings().currentTheme = theme);
     emit(ThemeChanged(theme: AppSettings().currentTheme));
+  }
+
+  Future<void> checkSession() async {
+    await executeUsecase(
+      () => isLoggedInUsecase(NoParams()),
+      onLoading: () => emit(SessionChecking()),
+      onSuccess: (isLoggedIn) {
+        emit(isLoggedIn ? SessionNavigateToInbox() : SessionNavigateToLogin());
+      },
+      onFailure: (_) => emit(SessionNavigateToLogin()),
+    );
   }
 
   @override

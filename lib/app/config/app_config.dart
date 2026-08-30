@@ -1,13 +1,15 @@
+import 'dart:io';
+
 class AppConfig {
-  // Environment: dev / prod
   static const bool isDebug = true;
   static const String langDefault = "ar";
 
-  // API URL
+  /// Android emulator uses 10.0.2.2 to reach host localhost.
   static String get baseUrl {
-    return isDebug ? "https://dev-api.example.com" : "https://api.example.com";
+    if (!isDebug) return "https://api.example.com";
+    if (Platform.isAndroid) return "http://10.0.2.2:4000";
+    return "http://localhost:4000";
   }
 
-  // أي إعدادات أخرى للتطبيق
   static const int timeoutSeconds = 30;
 }

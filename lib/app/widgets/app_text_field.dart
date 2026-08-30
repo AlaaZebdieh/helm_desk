@@ -134,6 +134,7 @@ class AppTextField extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = context.colors;
     final customColors = context.customColors;
+    final hasIcon = suffixIcon != null || prefixIcon != null;
     return Column(
       crossAxisAlignment: crossAxisAlignment ?? CrossAxisAlignment.start,
       children: [
@@ -178,12 +179,18 @@ class AppTextField extends StatelessWidget {
               textDirection: textDirection,
               style: AppTextStyles.subTitle(context),
               decoration: InputDecoration(
+                isDense: hasIcon,
                 contentPadding:
                     contentPadding ??
-                    EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
+                    EdgeInsets.symmetric(
+                      horizontal: 12.w,
+                      vertical: hasIcon ? 8.h : 10.h,
+                    ),
                 constraints: BoxConstraints(
                   minHeight: maxLines > 1 ? 0 : height.h,
-                  maxHeight: maxLines > 1 ? double.infinity : height.h,
+                  maxHeight: maxLines > 1 || hasIcon
+                      ? double.infinity
+                      : height.h,
                   maxWidth: double.infinity,
                   minWidth: double.infinity,
                 ),
@@ -194,9 +201,15 @@ class AppTextField extends StatelessWidget {
                   fontSize: 12,
                   color: hintColor ?? customColors.textSecondary,
                 ),
-                suffixIconConstraints: suffixIconConstraints,
+                suffixIconConstraints: suffixIconConstraints ??
+                    (suffixIcon != null
+                        ? BoxConstraints(minWidth: 40.w, minHeight: 40.h)
+                        : null),
                 suffixIcon: suffixIcon,
-                prefixIconConstraints: prefixIconConstraints,
+                prefixIconConstraints: prefixIconConstraints ??
+                    (prefixIcon != null
+                        ? BoxConstraints(minWidth: 40.w, minHeight: 40.h)
+                        : null),
                 prefixIcon: prefixIcon,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.all(

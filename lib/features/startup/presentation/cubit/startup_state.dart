@@ -45,3 +45,9 @@ class ThemeChanged extends StartupState {
   @override
   List<Object> get props => [theme];
 }
+
+class SessionChecking extends StartupState {}
+
+class SessionNavigateToLogin extends StartupState {}
+
+class SessionNavigateToInbox extends StartupState {}

@@ -1,0 +1,17 @@
+---
+description: Clean Architecture conventions — structure, Cubit, Entity/Model/Params, no new libs or architecture
+globs: **/*.dart
+alwaysApply: true
+---
+
+# Flutter Project Conventions
+
+- Follow the **existing** project structure and feature layout (`data` / `domain` / `presentation`).
+- Use **Cubit** for state management (see state-management rule).
+- Keep **Entity**, **Model**, and **Params** in **separate files** (domain vs data as the project already does).
+- Reuse existing widgets **and services** — do not reinvent helpers that already exist under `lib/app/`.
+- Do **not** introduce new libraries / packages.
+- Do **not** invent a new architecture or layering style.
+- Prefer **consistency** with neighboring features over creative alternatives.
+- Change **only** the files required for the task.
+- **Explain major changes** (new files, API shape, navigation, DI) briefly **before** implementing.

@@ -1,0 +1,26 @@
+---
+description: Colors only via context.colors / context.customColors — never hardcode or Colors.*/AppColors.*
+globs: **/*.dart
+alwaysApply: true
+---
+
+# Theme & Colors
+
+- Never hardcode color values (`Color(0xFF...)`, hex literals in UI).
+- Never use `Colors.*`.
+- Never use `AppColors.*`.
+- Always use:
+  - `context.colors`
+  - `context.customColors`
+- If a needed color is missing, **extend the theme** (ColorScheme / custom colors) instead of hardcoding.
+
+```dart
+// ❌ BAD
+color: Colors.blue
+color: AppColors.primary
+color: const Color(0xFF123456)
+
+// ✅ GOOD
+color: context.colors.primary
+color: context.customColors.someToken
+```

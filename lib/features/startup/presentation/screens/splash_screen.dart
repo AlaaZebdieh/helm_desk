@@ -1,31 +1,38 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
-class SplashScreen extends StatelessWidget {
+import '../../../../app/navigation/app_router.dart';
+import '../cubit/startup_cubit.dart';
+
+class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
 
-  // _goNext(BuildContext context) {
-  // sl<NotificationsService>().setUpNotifications(true);//todo uncommit when connect firebase project
-  // if (Constants.token.isNotEmpty) {
-  //   Navigator.pushReplacementNamed(context, Routes.mainRoute);
-  // } else if (sl<SharedPreferences>().containsKey(
-  //   AppStrings.isSeenOnboarding,
-  // )) {
-  //   Navigator.pushReplacementNamed(
-  //     context,
-  //     Routes.mainRoute,
-  //   ); //todo change for navigate auth
-  // } else {
-  //   Navigator.pushReplacementNamed(context, Routes.onboardingRoute);
-  // }
-  // }
+  @override
+  State<SplashScreen> createState() => _SplashScreenState();
+}
 
-  // _startDelay(BuildContext context) {
-  //   Future.delayed(const Duration(milliseconds: 5000), () => _goNext(context));
-  // }
+class _SplashScreenState extends State<SplashScreen> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<StartupCubit>().checkSession();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
-    // _startDelay(context);
-    return Scaffold(body: Container());
+    return BlocListener<StartupCubit, StartupState>(
+      listener: (context, state) {
+        if (state is SessionNavigateToLogin) {
+          Navigator.pushReplacementNamed(context, Routes.loginRoute);
+        } else if (state is SessionNavigateToInbox) {
+          Navigator.pushReplacementNamed(context, Routes.inboxRoute);
+        }
+      },
+      child: const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      ),
+    );
   }
 }

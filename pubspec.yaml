@@ -1,4 +1,4 @@
-name: task
+name: helm_desk
 description: "A new Flutter project."
 publish_to: 'none'
 
@@ -73,20 +73,28 @@ flutter:
   # - assets/images/
   - assets/vectors/
 
-  # fonts:
-  # - family: Cairo
-  #   fonts:
-  #   - asset: assets/fonts/cairo/Cairo-ExtraBold.ttf
-  #     weight: 800
-  #   - asset: assets/fonts/cairo/Cairo-Bold.ttf
-  #     weight: 700
-  #   - asset: assets/fonts/cairo/Cairo-SemiBold.ttf
-  #     weight: 600
-  #   - asset: assets/fonts/cairo/Cairo-Medium.ttf
-  #     weight: 500
-  #   - asset: assets/fonts/cairo/Cairo-Regular.ttf
-  #     weight: 400
-  #   - asset: assets/fonts/cairo/Cairo-Light.ttf
-  #     weight: 300
-  #   - asset: assets/fonts/cairo/Cairo-ExtraLight.ttf
-  #     weight: 200
+  fonts:
+  - family: Poppins
+    fonts:
+    - asset: assets/fonts/poppins/Poppins-Black.ttf
+      weight: 900
+    - asset: assets/fonts/poppins/Poppins-Bold.ttf
+      weight: 700
+    - asset: assets/fonts/poppins/Poppins-Medium.ttf
+      weight: 500
+    - asset: assets/fonts/poppins/Poppins-Regular.ttf
+      weight: 400
+    - asset: assets/fonts/poppins/Poppins-Light.ttf
+      weight: 300
+  - family: QomraArabic
+    fonts:
+    - asset: assets/fonts/qomra/itfQomraArabic-Black.ttf
+      weight: 900
+    - asset: assets/fonts/qomra/itfQomraArabic-Bold.ttf
+      weight: 700
+    - asset: assets/fonts/qomra/itfQomraArabic-Medium.ttf
+      weight: 500
+    - asset: assets/fonts/qomra/itfQomraArabic-Regular.ttf
+      weight: 400
+    - asset: assets/fonts/qomra/itfQomraArabic-Light.ttf
+      weight: 300
