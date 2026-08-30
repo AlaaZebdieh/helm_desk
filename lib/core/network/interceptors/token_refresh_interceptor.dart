@@ -1,6 +1,4 @@
 import 'dart:async';
-import 'dart:developer' as developer;
-
 import 'package:dio/dio.dart';
 
 import '../../../app/config/app_config.dart';
@@ -74,11 +72,6 @@ class TokenRefreshInterceptor extends Interceptor {
         await _authInterceptor?.handleSessionExpired();
         return handler.next(err);
       }
-
-      developer.log(
-        '[TokenRefreshInterceptor] /auth/refresh succeeded — retrying ${err.requestOptions.path}',
-        name: 'TokenRefreshInterceptor',
-      );
 
       final options = err.requestOptions;
       options.extra[_retriedKey] = true;

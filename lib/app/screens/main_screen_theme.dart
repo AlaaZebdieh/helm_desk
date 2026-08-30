@@ -21,7 +21,7 @@ class MainScreenTheme extends StatelessWidget {
     return GestureDetector(
       onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
       child: Scaffold(
-        extendBodyBehindAppBar: true,
+        // extendBodyBehindAppBar: true,
         backgroundColor: backgroundColor,
         appBar: appBar,
         floatingActionButton: floatingButton,
@@ -29,7 +29,7 @@ class MainScreenTheme extends StatelessWidget {
           height: context.height,
           width: context.width,
           padding: EdgeInsets.only(
-            top: context.topPadding,
+            // top: context.topPadding,
             bottom: context.bottomPadding,
           ),
           child: child,

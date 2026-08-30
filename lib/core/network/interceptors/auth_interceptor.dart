@@ -2,6 +2,7 @@
 
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../../app/config/app_settings.dart';
 import '../../../app/helpers/dialog_helper.dart';
@@ -67,6 +68,7 @@ class AuthInterceptor extends Interceptor {
 
     DialogHelper.showWarningDialog(
       context: ctx,
+      onClickNo: SystemNavigator.pop,
       onDialogClosed: () => _isHandling401 = false,
       barrierDismissible: false,
       msg: ctx.translate("your_session_has_expired_log_in_again"),

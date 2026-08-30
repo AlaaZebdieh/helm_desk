@@ -19,6 +19,8 @@ import 'core/storage/shared_prefs_service.dart';
 import 'core/services/dynamic_link_service.dart';
 import 'core/storage/local_storage_service.dart';
 import 'core/services/file_download_service.dart';
+import 'core/services/attachment_cache_service.dart';
+import 'features/tickets/presentation/helpers/reply_attachment_opener.dart';
 import 'core/services/notifications_service.dart';
 import 'core/storage/secure_storage_service.dart';
 import 'core/observers/app_lifecycle_observer.dart';
@@ -95,6 +97,13 @@ Future<void> init() async {
   sl.registerLazySingleton(() => NavigationService());
   sl.registerLazySingleton(() => FileUploadService(sl<Dio>()));
   sl.registerLazySingleton(() => FileDownloadService(sl<Dio>()));
+  sl.registerLazySingleton(() => AttachmentCacheService());
+  sl.registerLazySingleton(
+    () => ReplyAttachmentOpener(
+      cacheService: sl(),
+      downloadService: sl(),
+    ),
+  );
   sl.registerLazySingleton(() => DynamicLinkService(navigationService: sl()));
   sl.registerLazySingleton(() => NotificationsService(navigationService: sl()));
   sl.registerLazySingleton(() => SseService());

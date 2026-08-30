@@ -3,14 +3,22 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:pull_to_refresh/pull_to_refresh.dart';
 
+import '../../../../app/helpers/appbar_helper.dart';
+import '../../../../app/navigation/app_router.dart';
 import '../../../../app/screens/main_screen_theme.dart';
+import '../../../../app/theme/app_text_styles.dart';
 import '../../../../app/utils/extensions/context_extensions.dart';
 import '../../../../app/utils/extensions/failure_extensions.dart';
+import '../../../../app/widgets/app_button.dart';
 import '../../../../app/widgets/app_refresh_widget.dart';
-import '../../../../app/widgets/app_text_field.dart';
 import '../../../../injection_container.dart';
+import '../../../auth/presentation/helpers/logout_helper.dart';
 import '../cubit/inbox_cubit.dart';
-import 'ticket_detail_screen.dart';
+import '../widgets/inbox_empty_state.dart';
+import '../widgets/inbox_filters_bar.dart';
+import '../widgets/inbox_search_field.dart';
+import '../widgets/inbox_ticket_skeleton.dart';
+import '../widgets/ticket_card.dart';
 
 class InboxScreen extends StatefulWidget {
   const InboxScreen({super.key});
@@ -30,6 +38,56 @@ class _InboxScreenState extends State<InboxScreen> {
     super.dispose();
   }
 
+  PreferredSizeWidget _buildAppBar(BuildContext context, InboxState state) {
+    final customColors = context.customColors;
+    final InboxLoaded? loaded = switch (state) {
+      InboxLoaded loaded => loaded,
+      _ => null,
+    };
+
+    return AppBarHelper.build(
+      context,
+      backgroundColor: context.colors.surface,
+      surfaceTintColor: context.colors.surface,
+      centerTitle: false,
+      titleWidget: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            context.translate('inbox'),
+            style: AppTextStyles.titleMedium(context, fontSize: 18),
+          ),
+          if (loaded != null)
+            Text(
+              context.translate(
+                'tickets_total',
+                arguments: {'count': '${loaded.total}'},
+              ),
+              style: AppTextStyles.bodyMedium(
+                context,
+                fontSize: 12,
+                color: customColors.textSecondary,
+              ),
+            ),
+        ],
+      ),
+      actions: [
+        Padding(
+          padding: EdgeInsets.only(right: 12.w, top: 8.h, bottom: 8.h),
+          child: AppButton(
+            text: context.translate('logout'),
+            height: 36,
+            radius: 8,
+            textStyle: AppTextStyles.button(context, color: context.colors.primary),
+            backgroundColor: Colors.transparent,
+            padding: EdgeInsets.symmetric(horizontal: 16.w),
+            onClickEvent: () => LogoutHelper.logout(context),
+          ),
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
@@ -46,22 +104,15 @@ class _InboxScreenState extends State<InboxScreen> {
         },
         builder: (context, state) {
           return MainScreenTheme(
-            appBar: AppBar(
-              title: Text(context.translate('inbox')),
-              backgroundColor: context.colors.surface,
-            ),
+            appBar: _buildAppBar(context, state),
             child: Column(
               children: [
-                Padding(
-                  padding: EdgeInsets.all(12.w),
-                  child: AppTextField(
-                    controller: _searchController,
-                    hintText: context.translate('search'),
-                    onChanged: (value) =>
-                        context.read<InboxCubit>().search(value),
-                  ),
+                InboxSearchField(
+                  controller: _searchController,
+                  onChanged: (value) =>
+                      context.read<InboxCubit>().search(value),
                 ),
-                _FiltersBar(state: state),
+                InboxFiltersBar(state: state),
                 Expanded(child: _buildBody(context, state)),
               ],
             ),
@@ -73,12 +124,17 @@ class _InboxScreenState extends State<InboxScreen> {
 
   Widget _buildBody(BuildContext context, InboxState state) {
     if (state is InboxLoading) {
-      return const Center(child: CircularProgressIndicator());
+      return ListView.builder(
+        physics: const NeverScrollableScrollPhysics(),
+        padding: EdgeInsets.only(top: 8.h, bottom: 16.h),
+        itemCount: 7,
+        itemBuilder: (_, __) => const InboxTicketSkeleton(),
+      );
     }
 
     if (state is InboxLoaded) {
       if (state.tickets.isEmpty) {
-        return Center(child: Text(context.translate('no_tickets')));
+        return const InboxEmptyState();
       }
 
       return AppRefreshWidget(
@@ -87,18 +143,17 @@ class _InboxScreenState extends State<InboxScreen> {
         onRefresh: () => context.read<InboxCubit>().loadTickets(refresh: true),
         onLoading: () => context.read<InboxCubit>().loadMore(),
         child: ListView.builder(
+          padding: EdgeInsets.only(top: 4.h, bottom: 16.h),
           itemCount: state.tickets.length,
           itemBuilder: (context, index) {
             final ticket = state.tickets[index];
-            return ListTile(
-              title: Text(ticket.subject, maxLines: 2, overflow: TextOverflow.ellipsis),
-              subtitle: Text('${ticket.customer} · ${ticket.status} · ${ticket.priority}'),
+            return TicketCard(
+              ticket: ticket,
               onTap: () {
-                Navigator.push(
+                Navigator.pushNamed(
                   context,
-                  MaterialPageRoute(
-                    builder: (_) => TicketDetailScreen(ticketId: ticket.id),
-                  ),
+                  Routes.ticketDetailRoute,
+                  arguments: ticket.id,
                 );
               },
             );
@@ -108,46 +163,5 @@ class _InboxScreenState extends State<InboxScreen> {
     }
 
     return const SizedBox.shrink();
-  }
-}
-
-class _FiltersBar extends StatelessWidget {
-  final InboxState state;
-
-  const _FiltersBar({required this.state});
-
-  @override
-  Widget build(BuildContext context) {
-    final loaded = state is InboxLoaded ? state as InboxLoaded : null;
-    final cubit = context.read<InboxCubit>();
-
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      padding: EdgeInsets.symmetric(horizontal: 12.w),
-      child: Row(
-        children: [
-          FilterChip(
-            label: Text(context.translate('all')),
-            selected: loaded?.statusFilter == null,
-            onSelected: (_) => cubit.setStatusFilter(null),
-          ),
-          SizedBox(width: 8.w),
-          for (final status in ['open', 'pending', 'solved'])
-            Padding(
-              padding: EdgeInsets.only(right: 8.w),
-              child: FilterChip(
-                label: Text(context.translate(status)),
-                selected: loaded?.statusFilter == status,
-                onSelected: (_) => cubit.setStatusFilter(status),
-              ),
-            ),
-          FilterChip(
-            label: Text(context.translate('my_tickets')),
-            selected: loaded?.myTicketsOnly ?? false,
-            onSelected: (v) => cubit.toggleMyTickets(v),
-          ),
-        ],
-      ),
-    );
   }
 }

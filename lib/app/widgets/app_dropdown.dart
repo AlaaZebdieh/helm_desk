@@ -188,7 +188,7 @@ class AppDropdown<T> extends StatelessWidget {
                                   colors.primary,
                                   BlendMode.srcIn,
                                 ),
-                          width: 24.w,
+                          width: 12.w,
                         ),
                       ),
                     ),

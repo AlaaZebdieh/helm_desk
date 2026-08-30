@@ -7,8 +7,10 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/errors/failures/failures.dart';
 import '../../../../core/errors/failures/server_failure.dart';
+import '../../../../core/services/attachment_cache_service.dart';
 import '../../../../core/services/sse_service.dart';
 import '../../../../core/usecases/execute_usecase.dart';
+import '../../domain/entities/attachment.dart';
 import '../../domain/entities/reply.dart';
 import '../../domain/entities/ticket.dart';
 import '../../domain/usecases/add_reply_usecase.dart';
@@ -26,6 +28,7 @@ class TicketDetailCubit extends Cubit<TicketDetailState>
   final ClaimTicketUsecase claimTicketUsecase;
   final AddReplyUsecase addReplyUsecase;
   final UploadAttachmentUsecase uploadAttachmentUsecase;
+  final AttachmentCacheService attachmentCacheService;
   final SseService sseService;
 
   final String ticketId;
@@ -38,6 +41,7 @@ class TicketDetailCubit extends Cubit<TicketDetailState>
     required this.claimTicketUsecase,
     required this.addReplyUsecase,
     required this.uploadAttachmentUsecase,
+    required this.attachmentCacheService,
     required this.sseService,
   }) : super(TicketDetailInitial());
 
@@ -188,14 +192,19 @@ class TicketDetailCubit extends Cubit<TicketDetailState>
       ));
 
       String? attachmentLine;
+      Attachment? uploadedAttachment;
       uploadResult.fold(
         (failure) => emit(TicketDetailFailure(failure)),
         (attachmentEntity) {
+          uploadedAttachment = attachmentEntity;
           attachmentLine = finalBody.isEmpty
               ? '[مرفق: ${attachmentEntity.filename} (${attachmentEntity.id})]'
               : '$finalBody\n[مرفق: ${attachmentEntity.filename} (${attachmentEntity.id})]';
         },
       );
+      if (uploadedAttachment != null) {
+        await attachmentCacheService.save(uploadedAttachment!.id, attachment);
+      }
       if (attachmentLine == null) return;
       finalBody = attachmentLine!;
     }

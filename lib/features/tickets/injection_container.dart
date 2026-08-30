@@ -29,6 +29,7 @@ Future<void> init() async {
       claimTicketUsecase: sl(),
       addReplyUsecase: sl(),
       uploadAttachmentUsecase: sl(),
+      attachmentCacheService: sl(),
       sseService: sl(),
     ),
   );

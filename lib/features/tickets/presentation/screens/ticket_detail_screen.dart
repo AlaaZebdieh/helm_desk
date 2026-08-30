@@ -5,14 +5,19 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:image_picker/image_picker.dart';
 
+import '../../../../app/helpers/appbar_helper.dart';
 import '../../../../app/helpers/dialog_helper.dart';
 import '../../../../app/screens/main_screen_theme.dart';
+import '../../../../app/theme/app_text_styles.dart';
 import '../../../../app/utils/extensions/context_extensions.dart';
 import '../../../../app/utils/extensions/failure_extensions.dart';
-import '../../../../app/widgets/app_button.dart';
-import '../../../../app/widgets/app_text_field.dart';
 import '../../../../injection_container.dart';
 import '../cubit/ticket_detail_cubit.dart';
+import '../widgets/reply_bubble.dart';
+import '../widgets/ticket_chat_composer.dart';
+import '../widgets/ticket_detail_header.dart';
+import '../widgets/ticket_detail_skeleton.dart';
+import '../widgets/ticket_replies_empty_state.dart';
 
 class TicketDetailScreen extends StatefulWidget {
   final String ticketId;
@@ -41,6 +46,26 @@ class _TicketDetailScreenState extends State<TicketDetailScreen> {
     }
   }
 
+  void _removeAttachment() {
+    setState(() => _attachment = null);
+  }
+
+  PreferredSizeWidget _buildAppBar(BuildContext context, String subject) {
+    return AppBarHelper.build(
+      context,
+      backgroundColor: context.colors.surface,
+      surfaceTintColor: context.colors.surface,
+      centerTitle: false,
+      iconBackColor: context.colors.onSurface,
+      titleWidget: Text(
+        subject,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: AppTextStyles.titleMedium(context, fontSize: 16),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
@@ -64,7 +89,15 @@ class _TicketDetailScreenState extends State<TicketDetailScreen> {
         builder: (context, state) {
           if (state is TicketDetailLoading) {
             return MainScreenTheme(
-              child: const Center(child: CircularProgressIndicator()),
+              appBar: AppBarHelper.build(
+                context,
+                backgroundColor: context.colors.surface,
+                surfaceTintColor: context.colors.surface,
+                centerTitle: false,
+                iconBackColor: context.colors.onSurface,
+                titleWidget: const SizedBox.shrink(),
+              ),
+              child: const TicketDetailSkeleton(),
             );
           }
 
@@ -76,146 +109,47 @@ class _TicketDetailScreenState extends State<TicketDetailScreen> {
           final cubit = context.read<TicketDetailCubit>();
 
           return MainScreenTheme(
-            appBar: AppBar(
-              title: Text(ticket.subject, maxLines: 1, overflow: TextOverflow.ellipsis),
-              backgroundColor: context.colors.surface,
-            ),
+            appBar: _buildAppBar(context, ticket.subject),
             child: Column(
               children: [
-                Expanded(
-                  child: ListView(
-                    padding: EdgeInsets.all(16.w),
-                    children: [
-                      Text(ticket.customer, style: context.theme.textTheme.titleMedium),
-                      SizedBox(height: 8.h),
-                      Row(
-                        children: [
-                          _StatusDropdown(
-                            value: ticket.status,
-                            onChanged: state.isSubmitting
-                                ? null
-                                : (v) => cubit.updateStatus(v!),
-                          ),
-                          SizedBox(width: 8.w),
-                          _PriorityDropdown(
-                            value: ticket.priority,
-                            onChanged: state.isSubmitting
-                                ? null
-                                : (v) => cubit.updatePriority(v!),
-                          ),
-                        ],
-                      ),
-                      SizedBox(height: 8.h),
-                      if (ticket.assigneeId == null)
-                        AppButton(
-                          text: context.translate('claim'),
-                          isLoading: state.isSubmitting,
-                          onClickEvent:
-                              state.isSubmitting ? null : () => cubit.claim(),
-                        ),
-                      SizedBox(height: 16.h),
-                      ...ticket.replies.map(
-                        (reply) => Card(
-                          child: Padding(
-                            padding: EdgeInsets.all(12.w),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(reply.authorName,
-                                    style: context.theme.textTheme.labelLarge),
-                                SizedBox(height: 4.h),
-                                Text(reply.body),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
+                TicketDetailHeader(
+                  ticket: ticket,
+                  isSubmitting: state.isSubmitting,
+                  onStatusChanged: (value) => cubit.updateStatus(value),
+                  onPriorityChanged: (value) => cubit.updatePriority(value),
+                  onClaim: () => cubit.claim(),
                 ),
-                Padding(
-                  padding: EdgeInsets.all(12.w),
-                  child: Column(
-                    children: [
-                      if (_attachment != null)
-                        Align(
-                          alignment: AlignmentDirectional.centerStart,
-                          child: Text(_attachment!.path.split('/').last),
+                Expanded(
+                  child: ticket.replies.isEmpty
+                      ? const TicketRepliesEmptyState()
+                      : ListView.builder(
+                          padding: EdgeInsets.symmetric(vertical: 12.h),
+                          itemCount: ticket.replies.length,
+                          itemBuilder: (context, index) {
+                            return ReplyBubble(reply: ticket.replies[index]);
+                          },
                         ),
-                      AppTextField(
-                        controller: _replyController,
-                        hintText: context.translate('write_reply'),
-                        maxLines: 3,
-                      ),
-                      SizedBox(height: 8.h),
-                      Row(
-                        children: [
-                          IconButton(
-                            onPressed: _pickAttachment,
-                            icon: const Icon(Icons.attach_file),
-                          ),
-                          Expanded(
-                            child: AppButton(
-                              text: context.translate('send'),
-                              isLoading: state.isSubmitting,
-                              onClickEvent: state.isSubmitting
-                                  ? null
-                                  : () {
-                                      cubit.sendReply(
-                                        _replyController.text,
-                                        attachment: _attachment,
-                                      );
-                                      _replyController.clear();
-                                      setState(() => _attachment = null);
-                                    },
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
+                ),
+                TicketChatComposer(
+                  controller: _replyController,
+                  attachment: _attachment,
+                  isSubmitting: state.isSubmitting,
+                  onPickAttachment: _pickAttachment,
+                  onRemoveAttachment: _removeAttachment,
+                  onSend: () {
+                    cubit.sendReply(
+                      _replyController.text,
+                      attachment: _attachment,
+                    );
+                    _replyController.clear();
+                    setState(() => _attachment = null);
+                  },
                 ),
               ],
             ),
           );
         },
       ),
-    );
-  }
-}
-
-class _StatusDropdown extends StatelessWidget {
-  final String value;
-  final ValueChanged<String?>? onChanged;
-
-  const _StatusDropdown({required this.value, this.onChanged});
-
-  @override
-  Widget build(BuildContext context) {
-    return DropdownButton<String>(
-      value: value,
-      onChanged: onChanged,
-      items: ['open', 'pending', 'solved']
-          .map((s) => DropdownMenuItem(value: s, child: Text(s)))
-          .toList(),
-    );
-  }
-}
-
-class _PriorityDropdown extends StatelessWidget {
-  final String value;
-  final ValueChanged<String?>? onChanged;
-
-  const _PriorityDropdown({required this.value, this.onChanged});
-
-  @override
-  Widget build(BuildContext context) {
-    return DropdownButton<String>(
-      value: value,
-      onChanged: onChanged,
-      items: ['low', 'normal', 'high', 'urgent']
-          .map((p) => DropdownMenuItem(value: p, child: Text(p)))
-          .toList(),
     );
   }
 }
